@@ -165,16 +165,9 @@ class MAPU(Algorithm):
             global_model_para = list(self.global_enc.parameters())
         
         elif fl_method == 'SCAFFOLD':
-            c_global = scaffold_c_global
-            c_local = self.c_local
-            
-            c_local.to(self.device)
-            c_global.to(self.device)
-        
-            c_global_para = c_global.state_dict()
-            c_local_para = c_local.state_dict()
-            
-            global_model_para = self.global_enc.state_dict()
+            c_global_para = deepcopy(scaffold_c_global)
+            c_local_para = deepcopy(self.c_local)
+            global_model_para = deepcopy(self.global_enc.state_dict())
         
         elif fl_method == 'MOON':
             moon_criterion = nn.CrossEntropyLoss().to(self.device)
@@ -271,13 +264,11 @@ class MAPU(Algorithm):
             self.lr_scheduler.step()
             
             if fl_method == 'SCAFFOLD':
-                c_new_para = c_local.state_dict()
-                c_delta_para = deepcopy(c_local.state_dict())
+                c_delta_para = deepcopy(self.c_local)
                 net_para = self.encoder.state_dict()
                 for key in net_para:
-                    c_new_para[key] = c_new_para[key]-c_global_para[key] + (global_model_para[key]-net_para[key]) / (cnt*self.hparams['learning_rate'])
-                    c_delta_para[key] = c_new_para[key] - c_local_para[key]
-                c_local.load_state_dict(c_new_para)
+                    self.c_local[key] = self.c_local[key]-c_global_para[key]+(global_model_para[key]-net_para[key]) / (cnt*self.hparams['learning_rate'])
+                    c_delta_para[key] = self.c_local[key] - c_local_para[key]
     
             # saving the best model based on src risk
             '''if (epoch + 1) % 10 == 0 and avg_meter['Src_cls_loss'].avg < best_src_risk:
@@ -393,7 +384,7 @@ class MAPU(Algorithm):
         #self.network = nn.Sequential(self.encoder, self.classifier)
         
     def set_scaffold_items(self, c_local):
-        self.c_local = c_local
+        self.c_local = deepcopy(c_local)
 
 
 
