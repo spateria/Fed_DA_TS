@@ -196,16 +196,9 @@ class AbstractTrainer(object):
         fl_payload = {}
 
         if self.fed_type == 'SCAFFOLD':
-            c_locals = [] #variance tracking nets for scaffold
-            for i in range(self.num_clients):
-                enc, _, _ = self.client_algorithms[i].get_models()
-                c_locals.append(enc)
             c_global, _, _ = self.server_algorithm.get_models() #variance tracking global net for scaffold
-            c_global_para = c_global
-            for net_id, net in enumerate(c_locals):
-                net.load_state_dict(c_global_para)
             for i in range(self.num_clients):
-                self.client_algorithms[i].set_scaffold_items(c_locals[i])
+                self.client_algorithms[i].set_scaffold_items(c_global)
             fl_payload['c_global'] = c_global
             
                 
