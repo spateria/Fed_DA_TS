@@ -32,6 +32,9 @@ class Trainer(AbstractTrainer):
         os.makedirs(self.exp_log_dir, exist_ok=True)
 
     def train(self):
+    
+        if args.moon_mu: self.hparams['moon_mu'] = args.moon_mu
+        if args.fedprox_mu: self.hparams['fedprox_mu'] = args.fedprox_mu
 
         # table with metrics
         results_columns = ["scenario", "run", "acc", "f1_score", "auroc"]
@@ -88,8 +91,15 @@ class Trainer(AbstractTrainer):
         #table_risks = self.add_mean_std_table(table_risks, risks_columns)
 
         # Save tables to file
-        self.save_tables_to_file(table_results, f'results_{self.fed_type}')
-        #self.save_tables_to_file(table_risks, 'risks')
+        if args.fedprox_mu:
+          ex = self.hparams['fedprox_mu']
+          self.save_tables_to_file(table_results, f'results_{self.fed_type}_{ex}')
+        elif args.moon_mu:
+          ex = self.hparams['moon_mu']
+          self.save_tables_to_file(table_results, f'results_{self.fed_type}_{ex}')
+        else:
+          self.save_tables_to_file(table_results, f'results_{self.fed_type}')
+        self.save_tables_to_file(table_risks, 'risks')
 
 
 if __name__ == "__main__":
@@ -103,9 +113,12 @@ if __name__ == "__main__":
     
     # ========= Select the FL method ============
     parser.add_argument('--fed_type', default='FedAvg', type=str, help='noFL_multitargets, noFL_mergedtargets, FedAvg, FedProx, FedMA, SCAFFOLD, MOON')
+    
+    parser.add_argument('--moon_mu', default=0.0, type=float, help='')
+    parser.add_argument('--fedprox_mu', default=0.0, type=float, help='')
 
     # ========= Select the DATASET ==============
-    parser.add_argument('--data_path', default=r'TS_Datsets/ADATIME_data', type=str, help='Path containing datase2t')
+    parser.add_argument('--data_path', default=r'TS_Datsets/ADATIME_data', type=str, help='Path containing dataset')
     parser.add_argument('--dataset', default='HAR', type=str, help='Dataset of choice: (WISDM - EEG - HAR - HHAR_SA)')
 
     # ========= Select the BACKBONE ==============

@@ -96,7 +96,7 @@ class AbstractTrainer(object):
         lm, bm = self.server_algorithm.target_train_no_fl(self.trg_train_dls, self.loss_avg_meters, self.logger) 
 
         # Save nets
-        encoder, classifier, tov = self.server_algorithm.get_models()
+        encoder, classifier, tov = self.server_algorithm.get_model_params()
         nets_to_save = {}
         nets_to_save['global_encoder'] = encoder
         nets_to_save['global_classifier'] = classifier
@@ -136,9 +136,9 @@ class AbstractTrainer(object):
         #### START: Single-round target domain adaptation across multiple clients (no FL) after full pretraining #######
         
         ##Step 1: Pass a copy of the server model to each client. 
-        encoder, classifier, tov = self.server_algorithm.get_models() #get from server
+        encoder, classifier, tov = self.server_algorithm.get_model_params() #get from server
         for i in range(self.num_clients):
-            self.client_algorithms[i].set_models({'E':encoder,'C':classifier,'T':tov}) #send to clients
+            self.client_algorithms[i].set_model_params({'E':encoder,'C':classifier,'T':tov}) #send to clients
         
         ##Step 2: Do model updates on client sides
         for i in range(self.num_clients): #iterate over clients
@@ -149,13 +149,13 @@ class AbstractTrainer(object):
             lm, bm = self.client_algorithms[i].target_train_no_fl(self.trg_train_dls[i], self.loss_avg_meters, self.logger) 
 
         # Save nets
-        encoder, classifier, tov = self.server_algorithm.get_models()
+        encoder, classifier, tov = self.server_algorithm.get_model_params()
         nets_to_save = {}
         nets_to_save['global_encoder'] = encoder
         nets_to_save['global_classifier'] = classifier
         nets_to_save['global_tov'] = tov
         for i in range(self.num_clients):
-            client_encoder, _, _ = self.client_algorithms[i].get_models()
+            client_encoder, _, _ = self.client_algorithms[i].get_model_params()
             nets_to_save[f'client_{i}_encoder'] = client_encoder
         
         return nets_to_save
@@ -196,10 +196,10 @@ class AbstractTrainer(object):
         fl_payload = {}
 
         if self.fed_type == 'SCAFFOLD':
-            c_global, _, _ = self.server_algorithm.get_models() #variance tracking global net for scaffold
+            c_global_para, _, _ = self.server_algorithm.get_model_params() #variance tracking global net for scaffold
             for i in range(self.num_clients):
-                self.client_algorithms[i].set_scaffold_items(c_global)
-            fl_payload['c_global'] = c_global
+                self.client_algorithms[i].set_scaffold_items(c_global_para)
+            fl_payload['c_global_para'] = c_global_para
             
                 
         for fl_round in range(1, self.hparams["num_fl_rounds"] + 1):
@@ -208,9 +208,9 @@ class AbstractTrainer(object):
             self.logger.debug("=" * 45)
             
             ##Step 1: Pass a copy of the server model to each client. 
-            encoder, classifier, tov = self.server_algorithm.get_models() #get from server
+            encoder, classifier, tov = self.server_algorithm.get_model_params() #get from server
             for i in range(self.num_clients):
-                self.client_algorithms[i].set_models({'E':encoder,'C':classifier,'T':tov}) #send to clients
+                self.client_algorithms[i].set_model_params({'E':encoder,'C':classifier,'T':tov}) #send to clients
                 
             ##Step 2: Do model updates on client sides, here last and best models only contain encoder + classifier
             self.client_encoders = []
@@ -220,9 +220,9 @@ class AbstractTrainer(object):
                 self.logger.debug("=" * 45)
                 
                 if self.fed_type == 'SCAFFOLD':
-                    c_global = fl_payload['c_global'] #this is updated after each FL round using the FL algorithm (called below)
+                    c_global_para = fl_payload['c_global_para'] #this is updated after each FL round using the FL algorithm (called below)
                     lm, bm, c_delta_para = self.client_algorithms[i].target_train_fl(self.trg_train_dls[i], self.fed_type, 
-                                                                                        self.loss_avg_meters, self.logger, scaffold_c_global = c_global) 
+                                                              self.loss_avg_meters, self.logger, scaffold_c_global=c_global_para) 
                     if 'c_delta_para ' not in fl_payload:
                         fl_payload['c_delta_para'] = [c_delta_para]
                     else:
@@ -232,15 +232,15 @@ class AbstractTrainer(object):
                 
                 
                 #get client encoders (feature extractors) that need to be aggregated
-                client_enc, _, _ = self.client_algorithms[i].get_models()
+                client_enc, _, _ = self.client_algorithms[i].get_model_params()
                 self.client_encoders.append(client_enc) 
                 
                 
             #Step3: FL: Encoder Aggregation
             fl_payload['client_encoders'] = self.client_encoders
             fl_payload = self.fl_algorithm.aggregate(fl_payload) #aggregated encoder block
-            encoder = fl_payload['global_encoder']
-            self.server_algorithm.set_models({'E':encoder}) #Note:server separately preserved a copy of the pre-trained model(see algorithms.py)
+            encoder = fl_payload['aggregated_encoder']
+            self.server_algorithm.set_model_params({'E':encoder}) #Note:server separately preserved a copy of the pre-trained model(see algorithms.py)
             
             if 0:
               #Step4: Server-side update/fine-tuning
@@ -255,10 +255,10 @@ class AbstractTrainer(object):
 
         
         # Finish FL. Get global nets to save. Share them to the clients so that each client has the latest nets
-        encoder, classifier, tov = self.server_algorithm.get_models()
+        encoder, classifier, tov = self.server_algorithm.get_model_params()
         if self.fed_type not in ['MOON']:
             for i in range(self.num_clients):
-                self.client_algorithms[i].set_models({'E':encoder,'C':classifier,'T':tov})
+                self.client_algorithms[i].set_model_params({'E':encoder,'C':classifier,'T':tov})
                 
         # Save nets
         nets_to_save = {}
@@ -266,7 +266,7 @@ class AbstractTrainer(object):
         nets_to_save['global_classifier'] = classifier
         nets_to_save['global_tov'] = tov
         for i in range(self.num_clients):
-            client_encoder, _, _ = self.client_algorithms[i].get_models()
+            client_encoder, _, _ = self.client_algorithms[i].get_model_params()
             nets_to_save[f'client_{i}_encoder'] = client_encoder
         
         return  nets_to_save
