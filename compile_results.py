@@ -3,6 +3,8 @@ import os
 import pandas as pd
 
 result_dir = '../experiments_logs'
+output_dir = 'experiment_results'
+
 fed_types = ['FedAvg', 'FedProx', 'SCAFFOLD', 'MOON', 'noFL_multitargets']#, 'noFL_mergedtargets']
 
 def find_subdirectories(directory_path):
@@ -14,9 +16,13 @@ def find_subdirectories(directory_path):
 # Compile Data
 datasets = find_subdirectories(result_dir)
 for dataset in datasets:
+  if not os.path.exists(os.path.join(output_dir, dataset)):
+      os.mkdir(os.path.join(output_dir, dataset))
   TSmethods = find_subdirectories(os.path.join(result_dir, dataset))
   for TSmethod in TSmethods:
-    
+    if not os.path.exists(os.path.join(output_dir, dataset, TSmethod)):
+      os.mkdir(os.path.join(output_dir, dataset, TSmethod))
+      
     # Initialize a DataFrame to store the compiled data
     compiled_data = pd.DataFrame(columns=["fed_type", "acc", "f1_score", "auroc"])
 
@@ -44,10 +50,12 @@ for dataset in datasets:
               "f1_score": f1_score,
               "auroc": auroc
           }, ignore_index=True)
+          
+          data.to_csv(os.path.join(os.path.join(output_dir, dataset, TSmethod), f"results_{fed_type}.csv"))
       else:
           print(f'{data_path} does not exist!')
       
     # Save the compiled DataFrame to a new CSV file
-    compiled_csv_path = os.path.join(os.path.join(result_dir, dataset, TSmethod), f"compiled_results_{dataset}_{TSmethod}.csv")
+    compiled_csv_path = os.path.join(os.path.join(output_dir, dataset, TSmethod), f"compiled_results_{dataset}_{TSmethod}.csv")
     compiled_data.to_csv(compiled_csv_path, index=False)
 
