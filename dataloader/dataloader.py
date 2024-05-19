@@ -12,7 +12,11 @@ class Load_Dataset(Dataset):
 
         # Load samples
         x_data = dataset["samples"]
-
+        
+        # Convert to torch tensor
+        if isinstance(x_data, np.ndarray):
+            x_data = torch.from_numpy(x_data)
+                
         # Check samples dimensions.
         # The dimension of the data is expected to be (N, C, L)
         # where N is the #samples, C: #channels, and L is the sequence length
@@ -60,7 +64,11 @@ class Load_and_Merge_Datasets(Dataset):
         for dataset in datasets:
             # Load samples
             x_data = dataset["samples"]
-
+            
+            # Convert to torch tensor
+            if isinstance(x_data, np.ndarray):
+                x_data = torch.from_numpy(x_data)
+                
             # Check samples dimensions.
             # The dimension of the data is expected to be (N, C, L)
             # where N is the #samples, C: #channels, and L is the sequence length
@@ -68,10 +76,6 @@ class Load_and_Merge_Datasets(Dataset):
                 x_data = x_data.unsqueeze(1)
             elif len(x_data.shape) == 3 and x_data.shape[1] != self.num_channels:
                 x_data = x_data.transpose(1, 2)
-
-            # Convert to torch tensor
-            if isinstance(x_data, np.ndarray):
-                x_data = torch.from_numpy(x_data)
 
             self.x_data.append(x_data.float())
 
