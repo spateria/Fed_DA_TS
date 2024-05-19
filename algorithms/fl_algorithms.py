@@ -47,7 +47,7 @@ class FedAvg():
         for k in w_sum:
             new_net[k] = w_sum[k] / w_count[k]
         
-        fl_payload['global_encoder'] = new_net
+        fl_payload['aggregated_encoder'] = new_net
         
         return fl_payload
 
@@ -76,7 +76,7 @@ class FedProx():
         for k in w_sum:
             new_net[k] = w_sum[k] / w_count[k]
         
-        fl_payload['global_encoder'] = new_net
+        fl_payload['aggregated_encoder'] = new_net
         
         return fl_payload
     
@@ -87,7 +87,7 @@ class SCAFFOLD():
     def aggregate(self, fl_payload):
         
         client_nets = fl_payload['client_encoders']
-        c_global = fl_payload['c_global'] #global model variance tracker
+        c_global_para = fl_payload['c_global_para'] #global model variance tracker
         c_delta_para = fl_payload['c_delta_para']
         
         new_net = deepcopy(client_nets[0]) #initialize new global net
@@ -108,7 +108,7 @@ class SCAFFOLD():
             new_net[k] = w_sum[k] / w_count[k]
         
         ### Also update the global variance tracker
-        total_delta = deepcopy(c_global)
+        total_delta = deepcopy(c_global_para)
         for key in total_delta:
             total_delta[key] = 0.0
         
@@ -121,7 +121,6 @@ class SCAFFOLD():
         for key in total_delta:
             total_delta[key] /= n_clients #take average of deltas
         
-        c_global_para = c_global
         for key in c_global_para:
             if c_global_para[key].type() == 'torch.LongTensor':
                 c_global_para[key] += total_delta[key].type(torch.LongTensor)
@@ -130,10 +129,9 @@ class SCAFFOLD():
             else:
                 #print(c_global_para[key].type())
                 c_global_para[key] += total_delta[key]
-        c_global = c_global_para
         
-        fl_payload['global_encoder'] = new_net
-        fl_payload['c_global'] = c_global
+        fl_payload['aggregated_encoder'] = new_net
+        fl_payload['c_global_para'] = c_global_para
         
         return fl_payload
         
@@ -162,6 +160,6 @@ class MOON():
         for k in w_sum:
             new_net[k] = w_sum[k] / w_count[k]
         
-        fl_payload['global_encoder'] = new_net
+        fl_payload['aggregated_encoder'] = new_net
         
         return fl_payload

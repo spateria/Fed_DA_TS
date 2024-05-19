@@ -166,7 +166,6 @@ class MAPU(Algorithm):
         
         elif fl_method == 'SCAFFOLD':
             c_global_para = deepcopy(scaffold_c_global)
-            c_local_para = deepcopy(self.c_local)
             global_model_para = deepcopy(self.global_enc.state_dict())
         
         elif fl_method == 'MOON':
@@ -252,7 +251,7 @@ class MAPU(Algorithm):
                 if fl_method == 'SCAFFOLD':
                     net_para = self.encoder.state_dict()
                     for key in net_para:
-                        net_para[key] = net_para[key] - self.hparams['learning_rate'] * (c_global_para[key] - c_local_para[key])
+                        net_para[key] = net_para[key] - self.hparams['learning_rate'] * (c_global_para[key] - self.c_local_para[key])
                     self.encoder.load_state_dict(net_para)
                 
                 cnt += 1
@@ -264,11 +263,12 @@ class MAPU(Algorithm):
             self.lr_scheduler.step()
             
             if fl_method == 'SCAFFOLD':
-                c_delta_para = deepcopy(self.c_local)
+                old_c_local_para = deepcopy(self.c_local_para)
+                c_delta_para = deepcopy(self.c_local_para)
                 net_para = self.encoder.state_dict()
                 for key in net_para:
-                    self.c_local[key] = self.c_local[key]-c_global_para[key]+(global_model_para[key]-net_para[key]) / (cnt*self.hparams['learning_rate'])
-                    c_delta_para[key] = self.c_local[key] - c_local_para[key]
+                    self.c_local_para[key] = self.c_local_para[key]-c_global_para[key]+(global_model_para[key]-net_para[key]) / (cnt*self.hparams['learning_rate'])
+                    c_delta_para[key] = self.c_local_para[key] - old_c_local_para[key]
     
             # saving the best model based on src risk
             '''if (epoch + 1) % 10 == 0 and avg_meter['Src_cls_loss'].avg < best_src_risk:
@@ -359,32 +359,32 @@ class MAPU(Algorithm):
 
         return last_model, best_model
     
-    def get_models(self):
+    def get_model_params(self):
         return deepcopy(self.encoder.state_dict()), deepcopy(self.classifier.state_dict()), deepcopy(self.temporal_verifier.state_dict())
     
-    def set_models(self, in_models):
+    def set_model_params(self, in_model_params):
         
-        if 'E' in in_models:
-          new_encoder = in_models['E']
+        if 'E' in in_model_params:
+          new_encoder_params = in_model_params['E']
           self.prev_enc.load_state_dict(self.encoder.state_dict()) #save previous local encoder before updating it in latest FL round     
-          self.encoder.load_state_dict(new_encoder)     
-          self.global_enc.load_state_dict(new_encoder) #keep a copy of global encoder (FL)     
+          self.encoder.load_state_dict(new_encoder_params)     
+          self.global_enc.load_state_dict(new_encoder_params) #keep a copy of global encoder (FL)     
           
           for k, v in self.global_enc.named_parameters():
             v.requires_grad = False
           for k, v in self.prev_enc.named_parameters():
             v.requires_grad = False
           
-        if 'C' in in_models:
-          self.classifier.load_state_dict(in_models['C'])     
+        if 'C' in in_model_params:
+          self.classifier.load_state_dict(in_model_params['C'])     
           
-        if 'T' in in_models:
-          self.temporal_verifier.load_state_dict(in_models['T'])
+        if 'T' in in_model_params:
+          self.temporal_verifier.load_state_dict(in_model_params['T'])
         
         #self.network = nn.Sequential(self.encoder, self.classifier)
         
-    def set_scaffold_items(self, c_local):
-        self.c_local = deepcopy(c_local)
+    def set_scaffold_items(self, c_local_params):
+        self.c_local_para = deepcopy(c_local_params)
 
 
 
