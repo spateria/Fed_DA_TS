@@ -121,7 +121,9 @@ class HAR():
         for did in self.domain_ids:
           src_ids = [did]
           trgt_ids = [other_did for other_did in self.domain_ids if other_did not in src_ids]
-          self.scenarios.append( (src_ids,trgt_ids) ) 
+          self.scenarios.append( (src_ids,trgt_ids) )
+         
+        #self.scenarios = [ ([1], [2,3,5]) ] 
         '''self.scenarios = [
                 ([8], [22, 1, 29, 14, 24]), 
                 ([4], [9, 1, 5, 17, 23]), 

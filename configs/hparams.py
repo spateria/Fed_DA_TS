@@ -18,7 +18,7 @@ class FD():
             'lr_decay': 0.5,
             'fedprox_mu':0.1,
             'moon_temperature': 0.5,
-            'moon_mu': 1.0
+            'moon_mu': 0.01
         }
         self.alg_hparams = {
             'SHOT': {'pre_learning_rate': 0.001, 'learning_rate': 0.00001, 'ent_loss_wt': 0.8467, 'im': 0.2983,
@@ -40,9 +40,9 @@ class EEG():
             'weight_decay': 1e-4,
             'step_size': 50,
             'lr_decay': 0.5,
-            'fedprox_mu':0.001,
+            'fedprox_mu':0.1,
             'moon_temperature': 0.5,
-            'moon_mu': 1.0
+            'moon_mu': 5.0
         }
 
         self.alg_hparams = {
@@ -68,7 +68,7 @@ class HAR():
             'lr_decay': 0.5,
             'fedprox_mu':0.001,
             'moon_temperature': 0.5,
-            'moon_mu': 5.0
+            'moon_mu': 0.01
         }
         self.alg_hparams = {
             'SHOT': {'pre_learning_rate': 0.001, 'learning_rate': 0.0001, 'ent_loss_wt': 0.6709, 'im': 0.8969,
